@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+line-bot-sdk
+bs4
+requests
+psycopg2
+datetime

@@ -1,0 +1,20 @@
+h2 {
+    color: lightblue;
+}
+.timeColor {
+    color: hotpink;
+}
+.dateColor {
+    color: darkorchid;
+}
+.inputColor {
+    color: firebrick;
+}
+.outputColor {
+    color: slateblue;
+}
+
+.bg-sky-blue{background-color: rgb(12, 155, 199);}
+.register{font-size: 30px;}
+.boldText{font-weight:bold;}
+.register2{font-size: 40px;font-weight:bold;}
