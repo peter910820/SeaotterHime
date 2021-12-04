@@ -1,8 +1,10 @@
 import uvicorn
-from fastapi import FastAPI, Request, HTTPException, Form
+from fastapi import FastAPI, Request, HTTPException, Form, Cookie, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse
 
 from linebot import (LineBotApi, WebhookHandler)
 from linebot.exceptions import (InvalidSignatureError)
@@ -11,13 +13,15 @@ from linebot.models import *
 import os
 import re
 import psycopg2
-import datetime
 
-from app.testMessage_def import test_Word
-from app.hentai_def import nhentai_Search
-from app.randomChoice_def import *
-from app.arcaeaGroup_def import *
-from app.spider_def import *
+from app.event.testMessage_def import test_Word
+from app.event.hentai_def import nhentai_Search
+from app.event.randomChoice_def import *
+from app.event.arcaeaGroup_def import *
+from app.event.spider_def import *
+
+from app.functions.handle_Time import dateOperation
+from app.functions.handle_Database import *
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -77,13 +81,9 @@ def handle_message(event):
         messageList = messageList.split('-')
         messageIN = messageList[1]
         messageOUT = messageList[2]
-        loc_dt = datetime.datetime.today() 
-        time_del = datetime.timedelta(hours=8) 
-        new_dt = loc_dt + time_del 
-        time_format = new_dt.strftime("%H:%M:%S")
-        date_format = new_dt.strftime("%Y/%m/%d")
+        timeDate = dateOperation()
         #insert database
-        cursor.execute("INSERT INTO Words (Input, Output, Time, Date) VALUES (%s,%s,%s,%s)", (messageIN,messageOUT,time_format,date_format))
+        cursor.execute("INSERT INTO Words (Input, Output, Time, Date) VALUES (%s,%s,%s,%s)", (messageIN,messageOUT,timeDate[0],timeDate[1]))
         database.commit()
         msg.append(TextSendMessage(text=f'輸入出組合: {messageIN}-{messageOUT} 已成功設置'))
     # /delete
@@ -127,97 +127,63 @@ def handle_message(event):
 
 # 網頁端 #
 @app.get("/", response_class=HTMLResponse)
-async def read_item(request: Request):
-    return templates.TemplateResponse("homePage.html", {"request": request})
+async def read_item(request: Request, response: Response):
+    response = templates.TemplateResponse('login.html',{'request':request})
+    response.delete_cookie("c_user")
+    return response
+
 @app.get("/introduce", response_class=HTMLResponse) 
-async def read_item(request: Request):
-    return templates.TemplateResponse("introduce.html", {"request": request})
+async def read_item(request: Request, c_user: str = Cookie(None)):
+    if c_user:
+        return templates.TemplateResponse("introduce.html", {"request": request,"cookie" :c_user})
+    return templates.TemplateResponse("introduce.html", {"request": request,"cookie" :c_user})
     
 @app.post("/insert_Complete", response_class=HTMLResponse) 
 async def read_item(request: Request, Input:str=Form(None), Output:str=Form(None)):
-    DATABASE_URL = os.environ['DATABASE_URL']
-    database = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = database.cursor()   
-    print('Database is Connect ok!')
-    loc_dt = datetime.datetime.today() 
-    time_del = datetime.timedelta(hours=8) 
-    new_dt = loc_dt + time_del 
-    time_format = new_dt.strftime("%H:%M:%S")
-    date_format = new_dt.strftime("%Y/%m/%d")
-    #insert database
-    cursor.execute("INSERT INTO Words (Input, Output, Time, Date) VALUES (%s,%s,%s,%s)", (Input,Output,time_format,date_format))
-    database.commit()
+    web_insert_database(Input,Output)
     return templates.TemplateResponse("insert_Complete.html", {"request": request})
 
 @app.get("/database", response_class=HTMLResponse) 
-async def read_item(request: Request):
-    DATABASE_URL = os.environ['DATABASE_URL']
-    database = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = database.cursor()   
-    print('Database is Connect ok!')
-    cursor.execute("SELECT Input, Output, Time, Date from Words")
-    rows = cursor.fetchall()
-    db0 = []
-    db1 = []
-    db2 = []
-    db3 = []
-    db4 = []
-    db5 = []
-    for row in rows:
-        db0.append(row[0])
-        db1.append(row[1])
-        db2.append(row[2])
-        db3.append(row[3])
-    for column in range(len(db0)):
-        db4 = [db0[column],db1[column],db2[column],db3[column]]
-        db5.append(db4)
-    return templates.TemplateResponse("database.html", {"request": request, "data" : db5})
+async def read_item(request: Request, c_user: str = Cookie(None)):
+    show_data = show_database()
+    if c_user:
+        return templates.TemplateResponse("database.html", {"request": request, "data" : show_data  ,"cookie" :c_user})
+    return templates.TemplateResponse("home.html", {"request": request, "data" : show_data })
 #註冊#
 @app.get("/register", response_class=HTMLResponse)
 async def register(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 #註冊狀態#
 @app.post("/register/judge")
-async def register_judge(request: Request, account:str=Form(None), 
+async def register_show(request: Request, account:str=Form(None), 
                         password:str=Form(None), passwordCheck:str=Form(None),checkPwd:str=Form(None)):
-    if checkPwd != "Arcaea" or passwordCheck != password or account == None or password == None or passwordCheck == None or checkPwd == None:
-        return templates.TemplateResponse("register_Fail.html", {"request": request})
-    else:
-        DATABASE_URL = os.environ['DATABASE_URL']
-        database = psycopg2.connect(DATABASE_URL, sslmode='require')
-        cursor = database.cursor()   
-        print('Database is Connect ok!')
-        cursor.execute("SELECT Account, Password from UserDetailed")
-        rows = cursor.fetchall()
-        for i in range(len(rows)):
-            if account == rows[i][0]:
-               return templates.TemplateResponse("register_Fail.html", {"request": request})  
-        loc_dt = datetime.datetime.today() 
-        time_del = datetime.timedelta(hours=8) 
-        new_dt = loc_dt + time_del 
-        datetime_format = new_dt.strftime("%Y/%m/%d %H:%M:%S")
-        cursor.execute("INSERT INTO UserDetailed (Time, Account, Password) VALUES (%s,%s,%s)", (datetime_format,account,password))
-        database.commit()
-        cursor.close()
-        database.close()
-        return templates.TemplateResponse("register_Success.html", {"request": request})
+    reminderMessage = register_judge(account, password, passwordCheck, checkPwd)
+    return templates.TemplateResponse("register_Show.html", {"request": request, "reminderMessage": reminderMessage})
+        
 #登入#
-@app.post('/submit')
-async def get_user(request:Request, account:str=Form(None), password:str=Form(None)):
-    DATABASE_URL = os.environ['DATABASE_URL']
-    database = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = database.cursor()   
-    print('Database is Connect ok!')
-    cursor.execute("SELECT Account, Password from UserDetailed")
-    rows = cursor.fetchall()
-    for i in range(len(rows)):
-        if account == rows[i][0] and password == rows[i][1]:
-            return templates.TemplateResponse('home.html',{'request':request,'account':account})
-        elif  account == None or password == None:
-            reminderMessage = "欄位不得為空"
-            return templates.TemplateResponse('submit_Fail.html',{'request':request, 'reminderMessage':reminderMessage})
-    reminderMessage = "查無此帳號"
-    return templates.TemplateResponse('submit_Fail.html',{'request':request, 'reminderMessage':reminderMessage})
+@app.post('/home')
+async def get_user(request:Request, response: Response, account:str=Form(None), password:str=Form(None)):
+    reminderMessage = check_login(account,password)
+    if reminderMessage == "pass":
+        response = templates.TemplateResponse('home.html',{'request':request,'account':account})
+        response.set_cookie(key="c_user", value=account)
+        return response
+    else:
+        return templates.TemplateResponse('submit_Fail.html',{'request':request, 'reminderMessage':reminderMessage})
+@app.get('/home/change_password', response_class=HTMLResponse)
+async def change_password(request:Request, response: Response, c_user: str = Cookie(None)):
+    if c_user:
+        return templates.TemplateResponse("change_Password.html", {"request": request,"cookie" : c_user})
+
+@app.post('/home/change_password/judge', response_class=HTMLResponse)
+async def change_password(request:Request, c_user: str = Cookie(None),
+                        old_password:str=Form(None), new_password:str=Form(None), new_password_check:str=Form(None)):
+    if c_user:
+        state = change_password_database(c_user, old_password, new_password, new_password_check)
+        if state != None:
+            return templates.TemplateResponse('change_pwd_fail.html',{'request':request, 'state':state})
+        else:
+            return templates.TemplateResponse('change_pwd_success.html',{'request':request,})
 
 @app.get("/items/{id}", response_class=HTMLResponse)
 async def read_item(request: Request, id: str):

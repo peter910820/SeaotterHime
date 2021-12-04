@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}更改密碼{% endblock %}
+
+{% block main %}
+<h2>歡迎使用者: {{ cookie }}</h2>
+<div class="container">
+    <h1>更改密碼:</h1>
+    <div class="alert alert-success alert-dismissible fade show">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        <strong>Success!</strong> 密碼變更成功
+    </div>
+    <div>
+        <a href="/home/change_password"><input type="button" value="確定"></a>
+    </div>
+</div>
+
+{% endblock %}
