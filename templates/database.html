@@ -15,12 +15,18 @@
     </div>
     {% for i in data %}
     <div class="row">
-        <div class="col-12 col-md-6 col-xl-3 bg-light inputColor">{{ i[0] }}</div>
-        <div class="col-12 col-md-6 col-xl-3 bg-light outputColor">{{ i[1] }}</div>
-        <div class="col-12 col-md-6 col-xl-3 bg-light timeColor">{{ i[2] }}</div>
-        <div class="col-12 col-md-6 col-xl-3 bg-light dateColor">{{ i[3] }}</div>
+        <div class="col-12 col-md-6 col-xl-2 bg-light inputColor">{{ i[0] }}</div>
+        <div class="col-12 col-md-6 col-xl-2 bg-light outputColor">{{ i[1] }}</div>
+        <div class="col-12 col-md-6 col-xl-2 bg-light timeColor">{{ i[2] }}</div>
+        <div class="col-12 col-md-6 col-xl-2 bg-light dateColor">{{ i[3] }}</div>
+        <div class="col-12 col-md-6 col-xl-2 bg-light dateColor">
+            <a class="btn btn-outline-primary" href="#" role="button">先不要按</a>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2 bg-light dateColor">
+            <a class="btn btn-outline-danger" href="/database" role="button" onclick="post()">這沒屁用</a>
+        </div>
     </div>
     {% endfor %}
 </div>
-
+<script src="../static/post.js"></script>
 {% endblock %}

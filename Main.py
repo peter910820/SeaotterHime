@@ -127,28 +127,28 @@ def handle_message(event):
 
 # 網頁端 #
 @app.get("/", response_class=HTMLResponse)
-async def read_item(request: Request, response: Response):
+async def root(request: Request, response: Response):
     response = templates.TemplateResponse('login.html',{'request':request})
     response.delete_cookie("c_user")
     return response
 
 @app.get("/introduce", response_class=HTMLResponse) 
-async def read_item(request: Request, c_user: str = Cookie(None)):
+async def introduce(request: Request, c_user: str = Cookie(None)):
     if c_user:
         return templates.TemplateResponse("introduce.html", {"request": request,"cookie" :c_user})
-    return templates.TemplateResponse("introduce.html", {"request": request,"cookie" :c_user})
+    return RedirectResponse("/")
     
 @app.post("/insert_Complete", response_class=HTMLResponse) 
-async def read_item(request: Request, Input:str=Form(None), Output:str=Form(None)):
+async def insert(request: Request, Input:str=Form(None), Output:str=Form(None)):
     web_insert_database(Input,Output)
     return templates.TemplateResponse("insert_Complete.html", {"request": request})
 
 @app.get("/database", response_class=HTMLResponse) 
-async def read_item(request: Request, c_user: str = Cookie(None)):
+async def database(request: Request, c_user: str = Cookie(None)):
     show_data = show_database()
     if c_user:
         return templates.TemplateResponse("database.html", {"request": request, "data" : show_data  ,"cookie" :c_user})
-    return templates.TemplateResponse("home.html", {"request": request, "data" : show_data })
+    return RedirectResponse("/")
 #註冊#
 @app.get("/register", response_class=HTMLResponse)
 async def register(request: Request):
@@ -174,6 +174,7 @@ async def get_user(request:Request, response: Response, account:str=Form(None), 
 async def change_password(request:Request, response: Response, c_user: str = Cookie(None)):
     if c_user:
         return templates.TemplateResponse("change_Password.html", {"request": request,"cookie" : c_user})
+    return RedirectResponse("/")
 
 @app.post('/home/change_password/judge', response_class=HTMLResponse)
 async def change_password(request:Request, c_user: str = Cookie(None),
@@ -181,9 +182,9 @@ async def change_password(request:Request, c_user: str = Cookie(None),
     if c_user:
         state = change_password_database(c_user, old_password, new_password, new_password_check)
         if state != None:
-            return templates.TemplateResponse('change_pwd_fail.html',{'request':request, 'state':state})
+            return templates.TemplateResponse('change_pwd_fail.html',{'request':request, 'state':state, "cookie" : c_user})
         else:
-            return templates.TemplateResponse('change_pwd_success.html',{'request':request,})
+            return templates.TemplateResponse('change_pwd_success.html',{'request':request, "cookie" : c_user})
 
 @app.get("/items/{id}", response_class=HTMLResponse)
 async def read_item(request: Request, id: str):
