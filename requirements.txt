@@ -3,3 +3,4 @@ jinja2
 line-bot-sdk
 bs4
 requests
+gunicorn
